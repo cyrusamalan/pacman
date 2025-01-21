@@ -146,33 +146,38 @@ def aStarSearch(problem, heuristic):
 
     # *** Your Code Here ***
     # initialize structures
-    p_queue = PriorityQueue()
-    visited = set()
-    events = []
+    frontier = PriorityQueue()
+    visited = []
+    path = []
 
-    # Initialize the priority queue
-    start_state = problem.startingState()
-    p_queue.push((start_state, None, None, 0), heuristic(start_state, problem))
-    visited.add(start_state)
+    start = problem.startingState()
+    frontier.push((start, None, None, 0), heuristic(start, problem)) 
+    visited.append(start)  
 
-    while not p_queue.isEmpty():
-        current, parent_comp, prev, curr_cost = p_queue.pop()
+    while not frontier.isEmpty():
+        curr, parent_comp, prev, cost = frontier.pop()
 
-        # reconstruct the path
-        if problem.isGoal(current):
-            events = reconstruct_path((current, parent_comp, prev))
-            events.reverse()
+      
+        if problem.isGoal(curr):
+            path.append(prev)
+            while parent_comp is not None:
+                state, parent, next = parent_comp
+                path.append(next)
+                parent_comp = parent
             break
 
         # Process successors
-        for successor, next, step_cost in problem.successorStates(current):
-            if successor not in visited:
-                total_cost = curr_cost + step_cost
-                priority = total_cost + heuristic(successor, problem)
-                p_queue.push((successor, (current, parent_comp, prev), next, total_cost), priority)
-                visited.add(successor)
+        for successor, next, step_cost in problem.successorStates(curr):
+            if successor not in visited:  
+                new_cost = cost + step_cost
+                priority = new_cost + heuristic(successor, problem)
+                frontier.push((successor, (curr, parent_comp, prev), next, new_cost), priority)
+                visited.append(successor)
 
-    if events and events[0] is None:
-        events.pop(0)
+    # Reverse the path
+    path.reverse()
 
-    return events
+    if path and path[0] is None:
+        path.pop(0)
+
+    return path

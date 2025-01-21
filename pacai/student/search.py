@@ -1,10 +1,10 @@
+"""
+In this file, you will implement generic search algorithms which are called by Pacman agents.
+"""
 from pacai.util.stack import Stack
 from pacai.util.queue import Queue
 from pacai.util.priorityQueue import PriorityQueue
 
-"""
-In this file, you will implement generic search algorithms which are called by Pacman agents.
-"""
 def reconstruct_path(parent):
     """Reconstruct the path from goal to start using parent relationships."""
     path = []
@@ -13,6 +13,8 @@ def reconstruct_path(parent):
         path.append(event)
         parent = parent
     return path
+
+# WORKING
 
 def depthFirstSearch(problem):
     """
@@ -30,7 +32,6 @@ def depthFirstSearch(problem):
     ```
     """
 
-    # *** Your Code Here ***
     top = Stack()
     visited = set()
     context = []
@@ -60,33 +61,54 @@ def depthFirstSearch(problem):
 
     return context
 
-
-
 def breadthFirstSearch(problem):
-    from collections import deque
+    """
+    Search the shallowest nodes in the search tree first. [p 81]
+    """
 
-    queue = deque([(problem.startingState(), [])])
-    visited = set()
-    visited.add(tuple(problem.startingState()))
+    # *** Your Code Here ***
+    # initialize structures
+    queue = []  
+    visited = [] 
+    path = []
+
+    # Enqueue the start state
+    queue.append((problem.startingState(), None, None))  
+    visited.append(problem.startingState())  
 
     while queue:
-        current_state, actions = queue.popleft()
+        curr, parent_comp, prev = queue.pop(0)  
 
-        if problem.isGoal(current_state):
-            return actions
+        # If the goal is reached, reconstruct the path
+        if problem.isGoal(curr):
+            path.append(prev)
+            while parent_comp:
+                curr, parent, next = parent_comp
+                path.append(next)
+                parent_comp = parent
+            break
 
-        for successor, action, _ in problem.successorStates(current_state):
-            if tuple(successor) not in visited:
-                visited.add(tuple(successor))
-                queue.append((successor, actions + [action]))
-    return []
+        # Process successor states
+        for successor, next, cost in problem.successorStates(curr):
+            if successor not in visited:  
+                queue.append((successor, (curr, parent_comp, prev), next)) 
+                visited.append(successor)  
 
+    # Reverse the path
+    path.reverse()
+
+    if path and path[0] is None:
+        path.pop(0)
+
+    return path
 
 def uniformCostSearch(problem):
     """
     Search the node of least total cost first.
     """
 
+    # *** Your Code Here ***
+    # initialize structures
     p_queue = PriorityQueue()
     visited = set()
     context = []
@@ -122,6 +144,8 @@ def aStarSearch(problem, heuristic):
     Search the node that has the lowest combined cost and heuristic first.
     """
 
+    # *** Your Code Here ***
+    # initialize structures
     p_queue = PriorityQueue()
     visited = set()
     events = []

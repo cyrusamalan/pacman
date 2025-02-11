@@ -70,7 +70,7 @@ class ReflexAgent(BaseAgent):
         manhattan_distance = lambda goal: distance.manhattan(newPosition, goal)
 
         ghostDistances = [manhattan_distance(ghost) for ghost in ghostPositions]
-        foodDistances = [manhattan_distance(food) for food in foodPositions]
+        # foodDistances = [manhattan_distance(food) for food in foodPositions]
 
         # estimate of closest ghost
         closestGhostDist = max(min(ghostDistances, default=float('inf')), 0.001)
@@ -221,8 +221,6 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         action_to_take = max(pacman_moves, key=lambda pacman_moves: pacman_moves[1])
         return action_to_take[0]
 
-
-
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
     An expectimax agent.
@@ -242,6 +240,7 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
 
     def getAction(self, gamestate):
         numAgents = gamestate.getNumAgents()
+
         def expectimax(state, agent, depth):
             if state.isOver() or depth == self.getTreeDepth():
                 return self.getEvaluationFunction()(state), None
@@ -251,14 +250,27 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
                 return self.getEvaluationFunction()(state), None
 
             if agent == 0:
-                return max(
-                    (expectimax(state.generateSuccessor(agent, action), (agent + 1) % numAgents, depth + (agent + 1 == numAgents))[0], action)
-                    for action in legalActions
+               return max(
+                (
+                    expectimax(
+                        state.generateSuccessor(agent, action),
+                        (agent + 1) % numAgents,
+                        depth + (agent + 1 == numAgents)
+                    )[0],
+                    action
+                )
+                for action in legalActions
                 )
 
             else:
-                values = [expectimax(state.generateSuccessor(agent, action), (agent + 1) % numAgents, depth + (agent + 1 == numAgents))[0] 
-                        for action in legalActions]
+                values = [
+                    expectimax(
+                        state.generateSuccessor(agent, action),
+                        (agent + 1) % numAgents,
+                        depth + (agent + 1 == numAgents)
+                    )[0]
+                    for action in legalActions
+                ]
                 return sum(values) / len(values), random.choice(legalActions)
 
         _, action = expectimax(gamestate, 0, 0)
@@ -282,20 +294,23 @@ def betterEvaluationFunction(currentGameState):
 
     # Compute distance
     if foodPositions:
-        closestFoodDist = min(distance.manhattan(pacmanPosition, food) for food in foodPositions)
+        closestFoodDist = min(distance.manhattan(pacmanPosition, food)for food in foodPositions)
         foodScore = 1 / (closestFoodDist + 1)
     else:
         foodScore = 0  # No food left
 
     # Compute distance
     if ghostPositions:
-        closestGhostDist = min(distance.manhattan(pacmanPosition, ghost) for ghost in ghostPositions)
+        closestGhostDist = min(
+            distance.manhattan(pacmanPosition, ghost)
+            for ghost in ghostPositions
+        )
         if closestGhostDist == 0:
-            ghostScore = -float('inf')  
+            ghostScore = -float('inf')
         else:
-            ghostScore = -1 / closestGhostDist  
+            ghostScore = -1 / closestGhostDist
     else:
-        ghostScore = 0 
+        ghostScore = 0
 
     # chase scared ghosts
     scaredScore = 0

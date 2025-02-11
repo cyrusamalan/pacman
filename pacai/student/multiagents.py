@@ -250,18 +250,18 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
                 return self.getEvaluationFunction()(state), None
 
             if agent == 0:
-               return max(
-                (
-                    expectimax(
-                        state.generateSuccessor(agent, action),
-                        (agent + 1) % numAgents,
-                        depth + (agent + 1 == numAgents)
-                    )[0],
-                    action
+                return max(
+                    (
+                        expectimax(
+                            state.generateSuccessor(agent, action),
+                            (agent + 1) % numAgents,
+                            depth + (agent + 1 == numAgents)
+                        )[0],
+                        action
+                    )
+                    for action in legalActions
                 )
-                for action in legalActions
-                )
-
+              
             else:
                 values = [
                     expectimax(

@@ -3,8 +3,6 @@ import random
 from pacai.agents.base import BaseAgent
 from pacai.agents.search.multiagent import MultiAgentSearchAgent
 from pacai.core import distance
-import sys
-
 
 class ReflexAgent(BaseAgent):
     """
@@ -15,7 +13,6 @@ class ReflexAgent(BaseAgent):
     You are welcome to change it in any way you see fit,
     so long as you don't touch the method headers.
     """
-
     def __init__(self, index, **kwargs):
         super().__init__(index, **kwargs)
 
@@ -63,27 +60,27 @@ class ReflexAgent(BaseAgent):
 
         newGhostStates = successorGameState.getGhostStates()
         ghostPositions = [ghost.getPosition() for ghost in newGhostStates]
-        foodPositions = currentGameState.getFood().asList()
+        food = currentGameState.getFood().asList()
         newPosition = successorGameState.getPacmanPosition()
 
         # Compute Manhattan distances
-        manhattan_distance = lambda goal: distance.manhattan(newPosition, goal)
+        manhattan = lambda goal: distance.manhattan(newPosition, goal)
 
-        ghostDistances = [manhattan_distance(ghost) for ghost in ghostPositions]
+        ghost_dist = [manhattan(ghost) for ghost in ghostPositions]
         # foodDistances = [manhattan_distance(food) for food in foodPositions]
 
         # estimate of closest ghost
-        closestGhostDist = max(min(ghostDistances, default=float('inf')), 0.001)
+        ghost = max(min(ghost_dist, default=float('inf')), 0.001)
 
         # Find closest food
-        if foodPositions:
-            closestFood = min(foodPositions, key=manhattan_distance)
-            closestFoodDist = max(distance.maze(newPosition, closestFood, currentGameState), 0.001)
+        if food:
+            closestFood = min(food, key=manhattan)
+            food_dist = max(distance.maze(newPosition, closestFood, currentGameState), 0.001)
         else:
-            closestFoodDist = 0.001
+            food_dist = 0.001
 
-        # Return heuristic score
-        return (1 - (1 / closestGhostDist)) + (1 / closestFoodDist)
+        # Return score
+        return (1 - (1 / ghost)) + (1 / food_dist)
 
 
 class MinimaxAgent(MultiAgentSearchAgent):
@@ -117,38 +114,43 @@ class MinimaxAgent(MultiAgentSearchAgent):
         super().__init__(index, **kwargs)
 
     def getAction(self, gamestate):
-        numAgents = gamestate.getNumAgents()
-        
-        def minimax(state, agent, depth, prevAction):
+        num_agents = gamestate.getNumAgents()
+
+        def minimax(state, agent, depth):
             if state.isOver() or depth == self.getTreeDepth():
-                return self.getEvaluationFunction()(state), prevAction
+                return self.getEvaluationFunction()(state), None
 
             legalActions = state.getLegalActions(agent)
-            if not legalActions:  # return evaluation
-                return self.getEvaluationFunction()(state), 'STOP'
+            if not legalActions:
+                return self.getEvaluationFunction()(state), None
 
             isMaximizing = (agent == 0)
-            bestValue = float('-inf') if isMaximizing else float('inf')
-            bestAction = 'STOP'
 
-            for action in legalActions:
-                successor = state.generateSuccessor(agent, action)
-                nextAgent = (agent + 1) % numAgents
-                nextDepth = depth + (nextAgent == 0)  # Increase depth
-                value, _ = minimax(successor, nextAgent, nextDepth, action)
+            if isMaximizing:  # Maximize
+                return max(
+                    (
+                        minimax(
+                            state.generateSuccessor(agent, action),
+                            (agent + 1) % num_agents,
+                            depth + (agent + 1 == num_agents)
+                        )[0], action
+                    )
+                    for action in legalActions
+                )
+            else:  # Minimize
+                return min(
+                    (
+                        minimax(
+                            state.generateSuccessor(agent, action),
+                            (agent + 1) % num_agents,
+                            depth + (agent + 1 == num_agents)
+                        )[0], action
+                    )
+                    for action in legalActions
+                )
 
-                if isMaximizing:  # choose max value
-                    if value > bestValue:
-                        bestValue, bestAction = value, action
-                else:  # choose min value
-                    if value < bestValue:
-                        bestValue, bestAction = value, action
-
-            return bestValue, bestAction
-
-        _, action = minimax(gamestate, 0, 0, 'STOP')
+        _, action = minimax(gamestate, 0, 0)
         return action
-
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
@@ -166,60 +168,62 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         super().__init__(index, **kwargs)
 
     def getAction(self, gameState):
-        evalfn = self.getEvaluationFunction()
-        num_agents = gameState.getNumAgents()
-        tree_depth = self.getTreeDepth()
+        numAgents = gameState.getNumAgents()
 
-        def max_value(state, agent_idx, depth, alpha, beta):
-            if depth == tree_depth or state.isOver():
-                return evalfn(state)
-            v = -(sys.maxsize - 1)
-            if agent_idx == 0:
-                actions = state.getLegalActions(agent_idx)
-                actions.remove('Stop')
-                for action in actions:
-                    next_state = state.generateSuccessor(agent_idx, action)
-                    v = max(v, min_value(next_state, agent_idx + 1, depth, alpha, beta))
-                    if v >= beta:
-                        return v
-                    alpha = max(alpha, v)
-                return v
+        def alphabeta(state, agent, depth, alpha, beta):
+            if state.isOver() or depth == self.getTreeDepth():
+                return self.getEvaluationFunction()(state), None
 
-        def min_value(state, agent_idx, depth, alpha, beta):
-            v = sys.maxsize
-            if depth == tree_depth or state.isOver():
-                return evalfn(state)
-            if agent_idx == (num_agents - 1):
-                actions = state.getLegalActions(agent_idx)
-                for action in actions:
-                    next_state = state.generateSuccessor(agent_idx, action)
-                    v = min(v, max_value(next_state, 0, depth + 1, alpha, beta))
-                    if v <= alpha:
-                        return v
-                    beta = min(beta, v)
-                return v
-            else:
-                actions = state.getLegalActions(agent_idx)
-                for action in actions:
-                    next_state = state.generateSuccessor(agent_idx, action)
-                    v = min(v, min_value(next_state, agent_idx + 1, depth, alpha, beta))
-                    if v <= alpha:
-                        return v
-                    beta = min(beta, v)
-                return v
+            leg_action = state.getLegalActions(agent)
+            if agent == 0 and 'Stop' in leg_action:  # Make sure it doesn't stop
+                leg_action.remove('Stop')
 
-        pacman_moves = []
-        actions = gameState.getLegalActions()
-        actions.remove('Stop')
-        ninf = -(sys.maxsize - 1)
-        pinf = sys.maxsize
-        for action in actions:
-            next_state = gameState.generateSuccessor(0, action)
-            agent_idx = next_state.getLastAgentMoved()
-            item = (action, min_value(next_state, agent_idx + 1, 0, ninf, pinf))
-            pacman_moves.append(item)
-        action_to_take = max(pacman_moves, key=lambda pacman_moves: pacman_moves[1])
-        return action_to_take[0]
+            if not leg_action:
+                return self.getEvaluationFunction()(state), None
+
+            # Move ordering
+            leg_action.sort(
+                key=lambda action: self.getEvaluationFunction()(
+                    state.generateSuccessor(agent, action)
+                ),
+                reverse=(agent == 0)  # Sort descending
+            )
+
+            if agent == 0:  # Maximizing
+                value, bestAction = float('-inf'), None
+                for action in leg_action:
+                    successor = state.generateSuccessor(agent, action)
+                    newValue, _ = alphabeta(
+                        successor,
+                        (agent + 1) % numAgents,
+                        depth + (agent + 1 == numAgents),
+                        alpha, beta
+                    )
+                    if newValue > value:
+                        value, bestAction = newValue, action
+                    alpha = max(alpha, value)
+                    if alpha >= beta:
+                        break  # Prune
+                return value, bestAction
+
+            else:  # Ghosts (Minimizing)
+                value = float('inf')
+                for action in leg_action:
+                    successor = state.generateSuccessor(agent, action)
+                    newValue, _ = alphabeta(
+                        successor,
+                        (agent + 1) % numAgents,
+                        depth + (agent + 1 == numAgents),
+                        alpha, beta
+                    )
+                    value = min(value, newValue)
+                    beta = min(beta, value)
+                    if alpha >= beta:
+                        break  # Prune
+                return value, None
+
+        _, action = alphabeta(gameState, 0, 0, float('-inf'), float('inf'))
+        return action
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """

@@ -120,37 +120,37 @@ class MinimaxAgent(MultiAgentSearchAgent):
             if state.isOver() or depth == self.getTreeDepth():
                 return self.getEvaluationFunction()(state), None
 
-            legalActions = state.getLegalActions(agent)
-            if not legalActions:
+            leg_action = state.getLegalActions(agent)
+            if not leg_action:
                 return self.getEvaluationFunction()(state), None
 
-            isMaximizing = (agent == 0)
+            maxim = (agent == 0)
 
-            if isMaximizing:  # Maximize
+            if maxim:  # Maximize
                 return max(
                     (
                         minimax(
-                            state.generateSuccessor(agent, action),
+                            state.generateSuccessor(agent, next),
                             (agent + 1) % num_agents,
                             depth + (agent + 1 == num_agents)
-                        )[0], action
+                        )[0], next
                     )
-                    for action in legalActions
+                    for next in leg_action
                 )
             else:  # Minimize
                 return min(
                     (
                         minimax(
-                            state.generateSuccessor(agent, action),
+                            state.generateSuccessor(agent, next),
                             (agent + 1) % num_agents,
                             depth + (agent + 1 == num_agents)
-                        )[0], action
+                        )[0], next
                     )
-                    for action in legalActions
+                    for next in leg_action
                 )
 
-        _, action = minimax(gamestate, 0, 0)
-        return action
+        _, next = minimax(gamestate, 0, 0)
+        return next
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
@@ -168,7 +168,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         super().__init__(index, **kwargs)
 
     def getAction(self, gameState):
-        numAgents = gameState.getNumAgents()
+        num_agent = gameState.getNumAgents()
 
         def alphabeta(state, agent, depth, alpha, beta):
             if state.isOver() or depth == self.getTreeDepth():
@@ -195,8 +195,8 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
                     successor = state.generateSuccessor(agent, action)
                     newValue, _ = alphabeta(
                         successor,
-                        (agent + 1) % numAgents,
-                        depth + (agent + 1 == numAgents),
+                        (agent + 1) % num_agent,
+                        depth + (agent + 1 == num_agent),
                         alpha, beta
                     )
                     if newValue > value:
@@ -208,12 +208,12 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
 
             else:  # Ghosts (Minimizing)
                 value = float('inf')
-                for action in leg_action:
-                    successor = state.generateSuccessor(agent, action)
+                for next in leg_action:
+                    successor = state.generateSuccessor(agent, next)
                     newValue, _ = alphabeta(
                         successor,
-                        (agent + 1) % numAgents,
-                        depth + (agent + 1 == numAgents),
+                        (agent + 1) % num_agent,
+                        depth + (agent + 1 == num_agent),
                         alpha, beta
                     )
                     value = min(value, newValue)
@@ -222,8 +222,8 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
                         break  # Prune
                 return value, None
 
-        _, action = alphabeta(gameState, 0, 0, float('-inf'), float('inf'))
-        return action
+        _, next = alphabeta(gameState, 0, 0, float('-inf'), float('inf'))
+        return next
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
@@ -243,42 +243,41 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         super().__init__(index, **kwargs)
 
     def getAction(self, gamestate):
-        numAgents = gamestate.getNumAgents()
+        num_agents = gamestate.getNumAgents()
 
         def expectimax(state, agent, depth):
             if state.isOver() or depth == self.getTreeDepth():
                 return self.getEvaluationFunction()(state), None
 
-            legalActions = state.getLegalActions(agent)
-            if not legalActions:  # No moves
+            leg_action = state.getLegalActions(agent)
+            if not leg_action:  # No moves
                 return self.getEvaluationFunction()(state), None
 
             if agent == 0:
                 return max(
                     (
                         expectimax(
-                            state.generateSuccessor(agent, action),
-                            (agent + 1) % numAgents,
-                            depth + (agent + 1 == numAgents)
-                        )[0],
-                        action
+                            state.generateSuccessor(agent, next),
+                            (agent + 1) % num_agents,
+                            depth + (agent + 1 == num_agents)
+                        )[0], next
                     )
-                    for action in legalActions
+                    for next in leg_action
                 )
               
             else:
                 values = [
                     expectimax(
-                        state.generateSuccessor(agent, action),
-                        (agent + 1) % numAgents,
-                        depth + (agent + 1 == numAgents)
+                        state.generateSuccessor(agent, next),
+                        (agent + 1) % num_agents,
+                        depth + (agent + 1 == num_agents)
                     )[0]
-                    for action in legalActions
+                    for next in leg_action
                 ]
-                return sum(values) / len(values), random.choice(legalActions)
+                return sum(values) / len(values), random.choice(leg_action)
 
-        _, action = expectimax(gamestate, 0, 0)
-        return action
+        _, next = expectimax(gamestate, 0, 0)
+        return next
 
 def betterEvaluationFunction(currentGameState):
     """
@@ -322,10 +321,10 @@ def betterEvaluationFunction(currentGameState):
         if scaredTimes[i] > 0:
             scaredGhostDist = distance.manhattan(pacmanPosition, ghostPositions[i])
             if scaredGhostDist > 0:
-                scaredScore += 5 / scaredGhostDist  # Encourage hunting vulnerable ghosts
+                scaredScore += 5 / scaredGhostDist
 
     # remaining food pellets
-    foodCountScore = -len(foodPositions)  # Fewer food pellets left = better
+    foodCountScore = -len(foodPositions)  # Fewer food pellets
 
     return score + foodScore + ghostScore + scaredScore + foodCountScore
 
